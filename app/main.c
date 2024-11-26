@@ -1,8 +1,13 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <ctype.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <stdbool.h>
 
 void save_history(char*command) { // функция сохранения истории введенных команд
   FILE *file = fopen("history-txt", "a");
@@ -50,21 +55,40 @@ void process_echo(char *input) { // функция-обработка ключе
 
 void enviroment_var(char *input) {  // функция вывода переменной окружения 
   char *var_name = input + 3;  // пропустили в строке "\e "
-  if(isEmpty(var_name)) {
+  var_name[strcmp(var_name, "\n")] = 0;  // Убрали символ переноса
+  if(var_name ) {
     printf("Incorrect name of the environment variable\n");
-    return ;
   }
-
   char *var_value = getenv(var_name); // создаем указатель, указывающий на значение переменной окружения
 
   if(var_value == NULL) {  //Если переменная окружения не найдена
-    printf("Environment variable %s\n not found\n", var_name);
+    printf("Environment variable %s\n is not found\n", var_name);
   } else {  // Если нашли, то вывели
     printf("Environment variable: %s\n = %s\n\n", var_name, var_value);
   }
 }
 
+void executeCommand(const char* command) {
+  pid_t pid = fork();
+  if(pid == 0) {
+    execlp(command, command, (char*)NULL);
+    perror("execlp failed");
+    exit(1);
+  } else if(pid < 0) {
+    perror("fork failed");
+  } else {
+    wait(NULL);
+  }
+}
+
+void handle_highup() {
+  printf("Configuration reloaded\n\n");
+  printf("Enter your string: ");
+  fflush(stdout);
+}
+
 int main() { 
+  signal(1,handle_highup);
   char input[200];
   
   while(1) {
@@ -92,6 +116,14 @@ int main() {
 
     if(!isEmpty(input)) {
       printf("String you entered is empty\n");
+      continue;
+    }
+
+    if(strncmp(input, "run ", 4) == 0) {
+      char* run_command = input + 4;
+      run_command[strcspn(run_command, "\n")] = 0;
+      executeCommand(run_command);
+      printf("\n");
       continue;
     }
 
