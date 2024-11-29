@@ -121,3 +121,67 @@ run ls
 run cd shell
 run cd app
 run cd
+\e PATH
+\e USR
+123
+\e PATH
+\e asd
+\e 
+\e Path
+\e PATH
+\e  PATH
+\e 
+\e    
+\e 
+\e      
+\e PART
+\e PATH
+\e PAHG
+\e    
+\e    
+\e PAD
+\e PATH
+SIGHUP
+handle_sighup
+run echo
+run ls
+run cd app
+run cd ./app
+run cat history.txt
+run cat history-txt
+run echo hello1
+run echo asdasd
+run ls 
+run ls
+run echo asd
+sudu run echo ads
+run ls
+run echo huy
+run echo hello
+123
+run echo Hello
+\e PATH
+\l
+run ls 
+run ls
+run SIGHUP
+SIGHUP
+echo hello world 
+asd
+asd
+asd
+as
+asd
+asd
+asd
+asd
+\e PATH
+run ls
+clear
+run clear
+ads
+asd
+asd
+run clear
+\e PATH
+exit

@@ -9,6 +9,11 @@
 #include <sys/types.h>
 #include <stdbool.h>
 
+void clearScreen() {
+    printf("\033[H\033[J");  // clear ANSI-code
+    fflush(stdout);          // Сбрасываем буфер, чтобы вывод сразу применился
+}
+
 void save_history(char*command) { // функция сохранения истории введенных команд
   FILE *file = fopen("history-txt", "a");
   if(file == NULL){ // проверяем файл на пустоту
@@ -56,39 +61,76 @@ void process_echo(char *input) { // функция-обработка ключе
 void enviroment_var(char *input) {  // функция вывода переменной окружения 
   char *var_name = input + 3;  // пропустили в строке "\e "
   var_name[strcmp(var_name, "\n")] = 0;  // Убрали символ переноса
-  if(var_name ) {
-    printf("Incorrect name of the environment variable\n");
+  if(!isEmpty(var_name)) {
+    printf("The environment variable can't be an empty string\n");  // проверили переменную окружения на пустоту
+    return;
   }
   char *var_value = getenv(var_name); // создаем указатель, указывающий на значение переменной окружения
 
   if(var_value == NULL) {  //Если переменная окружения не найдена
-    printf("Environment variable %s\n is not found\n", var_name);
+    printf("Environment variable %s is not found\n", var_name);
   } else {  // Если нашли, то вывели
     printf("Environment variable: %s\n = %s\n\n", var_name, var_value);
   }
 }
 
-void executeCommand(const char* command) {
-  pid_t pid = fork();
-  if(pid == 0) {
-    execlp(command, command, (char*)NULL);
-    perror("execlp failed");
+void executeCommand(const char* command) {  // выполнение бинарника
+  pid_t pid = fork();  // с помощью системного вызова создаем новый процесс
+  if(pid == 0) {  // если процесс дочерний
+    execlp(command, command, (char*)NULL); // ищем нашу команду в каталогах PATH
+    perror("execlp failed");  // если не нашли команду
     exit(1);
-  } else if(pid < 0) {
+  } else if(pid < 0) {  // произошла ошибка при создании нового процесса 
     perror("fork failed");
   } else {
-    wait(NULL);
+    wait(NULL);  // родительский процесс ждет завершения дочернего
   }
 }
 
-void handle_highup() {
+void handle_sighup() {
   printf("Configuration reloaded\n\n");
   printf("Enter your string: ");
   fflush(stdout);
 }
 
+bool sys_sections(char* name_device) {
+  char device_path[256]; // тут будет храниться путь к утройству
+  snprintf(device_path, sizeof(device_path), "/dev/%s", name_device); // объединяем строку с /dev/ и результат записываем в devixe_path
+  int device = open(device_path, O_RDONLY); // открывает устройство по пути в режиме read only
+  
+  if(device == -1) {  // если не смогли открыть
+    perror("Произошла ошибка при открытии устройства, возможно, путь указан неправильно");
+    return true;
+  }
+
+  unsigned char sector[512];
+  ssize_t read_bytes = read(device, sector, 512); // функция читает 512 байт данных из файла, на который указывает device, сохраняет их в sector
+
+  if(read_bytes == -1) { // если во время чтения произошла ошибка
+    perror("Произошла ошибка при чтении сектора");
+    return true;
+  }
+  else if(read_bytes < 512) { // проверка, если было прочитано меньше 512 байт
+    perror("Не удалось прочитать сектор полностью");
+    close(device);
+    return true;
+  } 
+  
+  unsigned short signature;  // переменная для хранения сигнатуры
+  signature = (sector[510] << 8) | sector[511]; // извлекается сигнатура из последних 2 байт прочитанного сектора. 0x55AA обычно находится в последних 2-х байтах первого сектора. 
+  // формируется полное значение сигнатуры, объединяя 511 и 510 сдвинутый байты
+
+  if(signature == 0x55AA) { // проверка сигнатуры. Запуск через sudo ./main, посмотреть диски df -h, выбор диска \l nvme0n1p1
+    printf("Устройство %s является загрузочным\n", name_device);
+  } else {
+    printf("Устройство %s не является загрузочным\n", name_device);
+  }
+  close(device);
+  return false;
+}
+
 int main() { 
-  signal(1,handle_highup);
+  signal(1,handle_sighup);
   char input[200];
   
   while(1) {
@@ -101,6 +143,11 @@ int main() {
     if(process_exit(input)) {
       printf("You successfully exited\n");
       break;
+    }
+
+    if (strcmp(input, "clear") == 0) {
+      clearScreen();
+      continue;  
     }
 
     if(strncmp(input, "echo ", 5) == 0) { // Функция сравнивает 2 строки и возвращает 0, если равны
@@ -124,6 +171,13 @@ int main() {
       run_command[strcspn(run_command, "\n")] = 0;
       executeCommand(run_command);
       printf("\n");
+      continue;
+    }
+
+    if(strncmp(input, "\\l ", 3) == 0) {
+      char* name_device = input + 3;
+      name_device[strcspn(name_device, "\n")] == 0;
+      sys_sections(name_device);
       continue;
     }
 

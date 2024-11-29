@@ -2,3 +2,24 @@
 \e PATH
 \e PATH
 \e 
+\e PATH
+run ip
+\e PATH
+run ls
+clear
+exit
+\l nvme0n1p1
+clear
+run clear
+exit
+\l nvme0n1p1
+exit
+\l nvme0n1p1
+exit
+\l nvme0n1p1
+exit
+\l nvme0n1p1
+exit
+\l nvme0n1p6
+exit
+\l nvme0n1p6
