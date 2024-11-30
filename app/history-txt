@@ -23,3 +23,29 @@ exit
 \l nvme0n1p6
 exit
 \l nvme0n1p6
+\l nvme0n1p1
+exit
+\l nvme0n1p1
+run git
+run ls
+run ls -
+exit
+\proc 2603
+\proc 2296
+\proc 3682
+123
+\proc 2264
+\proc 3598
+\proc 2264
+\proc 2264
+\proc 2264
+\proc 2264
+exir
+exit
+\proc 2264
+exit
+\proc 2264
+exit
+\proc 2264
+\proc 2296
+\proc 1272

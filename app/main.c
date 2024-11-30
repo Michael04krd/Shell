@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <stdbool.h>
+#include <dirent.h>
 
 void clearScreen() {
     printf("\033[H\033[J");  // clear ANSI-code
@@ -129,7 +130,40 @@ bool sys_sections(char* name_device) {
   return false;
 }
 
-int main() { 
+bool glue_files(char* file_path1, char* file_path2) {  // добавляет содержимое файла path1 в файл path2, path - пути к файлам
+  FILE *file1 = fopen(file_path1, "a");  // в режиме добавления
+  FILE *file2 = fopen(file_path2, "r"); // в режиме чтения
+  if(!file1 || !file2) { // если не удалось открыть один из файлов
+    printf("Error of opening file %s\n", file_path2);
+    return false;
+  }
+
+  char buffer[256]; // создали буфер для временного хранения строк из path2
+
+  while(fgets(buffer, 256, file2) != NULL) { // читаем path2 и записываем их в path1
+    fputs(buffer, file1);
+  }
+  fclose(file1); // закрыли файлы
+  fclose(file2);
+  return true;
+}
+
+void createDump(DIR* directory, char* path) {  // дамп содержимого всех файлов в указанной директории
+  FILE* my_file = fopen("my_file.txt", "w+");  // создали/перезаписали файл, в котором будут данные всех файлов в директории 
+  fclose(my_file); // сразу закрываем, используем его в функции склеивания файлов
+
+  struct dirent* ent; // структура для хранения информации о файлах в директории
+  char* file_path;
+  while ((ent = readdir(directory)) != NULL) { // перебор всех элементов в директории
+    asprintf(&file_path, "%s/%s", path, ent->d_name); // создает строку с полным путем к текущему файлу(к пути добавляется файл)
+    if(!glue_files("my_file.txt", file_path)) { // для каждого элемента директории вызываем функцию склеивания, которая добавляет содержимое текущего файла в my_file.txt
+      return; // если функция вернула false, то прекращаем выполнение нашей функции
+    }
+  }
+  printf("Dump comleted!\n"); // все получилось)
+}
+
+int main() {
   signal(1,handle_sighup);
   char input[200];
   
@@ -178,6 +212,20 @@ int main() {
       char* name_device = input + 3;
       name_device[strcspn(name_device, "\n")] == 0;
       sys_sections(name_device);
+      continue;
+    }
+
+    if(strncmp(input, "\\proc ", 6) == 0) { // вызывать нужно через sudo
+      char* path;
+      asprintf(&path, "/proc/%s/map_files", input + 6);
+
+      DIR* directory = opendir(path);
+      if(directory) {
+        createDump(directory, path);
+      
+      } else {
+        printf("The process is not found");
+      }
       continue;
     }
 

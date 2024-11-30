@@ -185,3 +185,6 @@ asd
 run clear
 \e PATH
 exit
+run cat ./history-txt
+run ls
+exit
