@@ -49,3 +49,16 @@ exit
 \proc 2264
 \proc 2296
 \proc 1272
+clear
+run clear
+exit
+run ls
+run clear
+exit
+run ls
+run clear
+\proc 2376
+\proc 2358
+\proc 1076
+\proc 1076
+\proc 1060

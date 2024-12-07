@@ -188,3 +188,10 @@ exit
 run cat ./history-txt
 run ls
 exit
+run echo hello
+run ls -o
+run 
+run as
+run hz command
+run fd
+run    
